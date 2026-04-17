@@ -398,55 +398,71 @@ st.markdown("""
         transform: translateY(-1px) !important;
     }
     
-    /* SIDEBAR */
+    /* SIDEBAR - Navy header strip + white card body */
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0f2557 0%, #1e3a8a 100%);
+        background: #0f2557 !important;
     }
-    [data-testid="stSidebar"] p,
-    [data-testid="stSidebar"] span,
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] > div:first-child {
+        background: #0f2557 !important;
+    }
+
+    /* All sidebar text white by default */
+    [data-testid="stSidebar"] .stMarkdown,
+    [data-testid="stSidebar"] .stMarkdown p,
     [data-testid="stSidebar"] h3,
-    [data-testid="stSidebar"] label,
-    [data-testid="stSidebar"] div,
-    [data-testid="stSidebar"] .stMarkdown { color: white !important; }
-    
-    /* Text inputs in sidebar - force visible text */
-    [data-testid="stSidebar"] input[type="text"],
-    [data-testid="stSidebar"] input[type="number"],
-    [data-testid="stSidebar"] .stTextInput input,
-    [data-testid="stSidebar"] .stDateInput input {
-        background-color: rgba(255,255,255,0.15) !important;
-        border: 1px solid rgba(255,255,255,0.4) !important;
-        color: #ffffff !important;
+    [data-testid="stSidebar"] hr { color: white !important; }
+
+    /* INPUT CARDS — white background so text is always visible */
+    [data-testid="stSidebar"] .stTextInput,
+    [data-testid="stSidebar"] .stNumberInput,
+    [data-testid="stSidebar"] .stSelectbox,
+    [data-testid="stSidebar"] .stCheckbox {
+        background: rgba(255,255,255,0.97) !important;
         border-radius: 8px !important;
-        caret-color: white !important;
+        padding: 4px 8px !important;
+        margin-bottom: 6px !important;
     }
-    [data-testid="stSidebar"] input::placeholder { color: rgba(255,255,255,0.5) !important; }
+
+    /* Labels inside white cards → dark text */
+    [data-testid="stSidebar"] .stTextInput label,
+    [data-testid="stSidebar"] .stNumberInput label,
+    [data-testid="stSidebar"] .stSelectbox label,
+    [data-testid="stSidebar"] .stCheckbox label {
+        color: #0f2557 !important;
+        font-size: 0.82rem !important;
+        font-weight: 600 !important;
+    }
+
+    /* Input fields themselves → black text on white */
+    [data-testid="stSidebar"] input {
+        color: #1e293b !important;
+        background: white !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        caret-color: #0f2557 !important;
+    }
+    [data-testid="stSidebar"] input::placeholder { color: #94a3b8 !important; }
     [data-testid="stSidebar"] input:focus {
-        background-color: rgba(255,255,255,0.25) !important;
-        border-color: rgba(255,255,255,0.7) !important;
-        color: #ffffff !important;
-        outline: none !important;
-        box-shadow: 0 0 0 2px rgba(245,158,11,0.5) !important;
+        border-color: #1e3a8a !important;
+        box-shadow: 0 0 0 2px rgba(245,158,11,0.4) !important;
+        color: #1e293b !important;
     }
-    /* Selectbox in sidebar */
+
+    /* Selectbox dropdown → dark text */
     [data-testid="stSidebar"] .stSelectbox > div > div {
-        background: rgba(255,255,255,0.15) !important;
-        border: 1px solid rgba(255,255,255,0.4) !important;
-        border-radius: 8px !important;
-        color: white !important;
+        background: white !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 6px !important;
+        color: #1e293b !important;
     }
-    [data-testid="stSidebar"] .stSelectbox svg { fill: white !important; }
-    /* Date picker in sidebar */
-    [data-testid="stSidebar"] .stDateInput > div > div {
-        background: rgba(255,255,255,0.15) !important;
-        border: 1px solid rgba(255,255,255,0.4) !important;
-        border-radius: 8px !important;
+    [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] span,
+    [data-testid="stSidebar"] .stSelectbox div[role="button"] {
+        color: #1e293b !important;
     }
-    /* Checkbox in sidebar */
-    [data-testid="stSidebar"] .stCheckbox label { color: white !important; }
-    [data-testid="stSidebar"] label { color: rgba(255,255,255,0.9) !important; font-size: 0.85rem !important; font-weight: 400 !important; }
+    [data-testid="stSidebar"] .stSelectbox svg { fill: #0f2557 !important; }
+
+    /* Checkbox text */
+    [data-testid="stSidebar"] .stCheckbox span { color: #1e293b !important; }
     
     /* TABS */
     .stTabs [data-baseweb="tab-list"] { background: #f1f5f9; border-radius: 10px; padding: 4px; gap: 4px; }
@@ -525,17 +541,33 @@ with st.sidebar:
     st.markdown("### 👤 Client Profile")
     u_name = st.text_input("Client Full Name", value="", placeholder="Eg: Ramesh Kumar Sharma")
     u_pan = st.text_input("PAN Number", value="", placeholder="ABCDE1234F")
-    u_dob = st.date_input("Date of Birth", value=date(1980, 1, 1))
-    
-    # Calculate age for senior citizen benefit
+
+    # DOB as separate number inputs — no browser date range restriction
+    st.markdown("<div style='color:white;font-size:0.82rem;font-weight:600;margin-bottom:2px;'>Date of Birth</div>", unsafe_allow_html=True)
+    dob_col1, dob_col2, dob_col3 = st.columns(3)
+    dob_day   = dob_col1.number_input("Day",   min_value=1,    max_value=31,   value=1,    step=1, key="dob_d", label_visibility="collapsed")
+    dob_month = dob_col2.number_input("Month", min_value=1,    max_value=12,   value=1,    step=1, key="dob_m", label_visibility="collapsed")
+    dob_year  = dob_col3.number_input("Year",  min_value=1920, max_value=2010, value=1960, step=1, key="dob_y", label_visibility="collapsed")
+    dob_col1.caption("DD"); dob_col2.caption("MM"); dob_col3.caption("YYYY")
+
+    # Safe DOB construction
+    try:
+        u_dob = date(int(dob_year), int(dob_month), int(dob_day))
+    except ValueError:
+        u_dob = date(1960, 1, 1)
+        st.warning("Invalid date — using 01-Jan-1960")
+
+    # Calculate age
     today = date.today()
     age = today.year - u_dob.year - ((today.month, today.day) < (u_dob.month, u_dob.day))
+
     if age >= 80:
-        st.markdown('<div class="info-pill">👴 Super Senior Citizen (80+)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="background:#065f46;color:white;padding:5px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;display:inline-block;margin:4px 0;">👴 Super Senior Citizen (80+)</div>', unsafe_allow_html=True)
     elif age >= 60:
-        st.markdown('<div class="info-pill">🧓 Senior Citizen (60-79)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="background:#b45309;color:white;padding:5px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;display:inline-block;margin:4px 0;">🧓 Senior Citizen (60–79)</div>', unsafe_allow_html=True)
     else:
-        st.markdown('<div class="info-pill">👤 Below 60 years</div>', unsafe_allow_html=True)
+        st.markdown('<div style="background:#1e3a8a;color:white;padding:5px 12px;border-radius:20px;font-size:0.8rem;font-weight:600;display:inline-block;margin:4px 0;">👤 Below 60 Years</div>', unsafe_allow_html=True)
+    st.markdown(f"<div style='color:rgba(255,255,255,0.7);font-size:0.78rem;margin-bottom:8px;'>Age: {age} years as on today</div>", unsafe_allow_html=True)
     
     u_status = st.selectbox("Residential Status", ["Resident Indian", "NRI", "RNOR"])
     u_category = st.selectbox("Category", ["Individual", "HUF"])
@@ -561,12 +593,12 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("""
-    <div style="font-size:0.78rem; color:rgba(255,255,255,0.6); line-height:1.6;">
+    <div style="font-size:0.78rem; color:rgba(255,255,255,0.75); line-height:1.8; background:rgba(0,0,0,0.2); border-radius:8px; padding:10px 12px; margin-top:4px;">
     📞 +91 7317315507<br>
     📞 +91 9692156373<br>
     📧 info@caspca.net<br>
     🌐 www.caspca.net<br><br>
-    <em>For professional consultation<br>contact us directly.</em>
+    <em style="color:rgba(255,255,255,0.5);">For professional consultation<br>contact us directly.</em>
     </div>
     """, unsafe_allow_html=True)
 
