@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from fpdf import FPDF # This uses fpdf2
+from fpdf import FPDF
 
 # =============================================================================
 # CONFIGURATION & DATABASE
@@ -58,7 +58,6 @@ def calculate_slab_tax(taxable_income, year, regime):
 st.set_page_config(page_title="S P C A & Co | Income Tax Calculator", layout="wide")
 st.markdown("""<style>.main { background-color: #f5f7f9; } .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #1e3a8a; color: white; font-weight: bold; }</style>""", unsafe_allow_html=True)
 
-# Updated Header as requested
 st.title("🏛️ Income Tax Calculator")
 st.markdown("<div style='text-align: center; color: #666; font-style: italic;'>Developed by <b>S P C A & Co, Chartered Accountants, Bhubaneswar</b><br><a href='http://www.caspca.net' target='_blank' style='color: #007bff;'>www.caspca.net</a></div>", unsafe_allow_html=True)
 
@@ -144,6 +143,7 @@ with st.expander("📁 DETAILED INCOME & EXEMPTION INPUTS", expanded=True):
 # ENGINE
 # ==========================================
 if st.button("🚀 GENERATE FINAL COMPUTATION"):
+    # Exemption Logic
     hra_ex, hra_log = calc_hra(actual_hra, basic, rent_paid, city)
     gra_ex, gra_log = calc_gratuity(gratuity_rec, g_years, g_last_sal)
     pen_ex, pen_log = calc_pension(pension_rec, p_total, p_percent)
@@ -195,37 +195,104 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
     }
     st.table(pd.DataFrame(summary_data))
 
-    # --- FIXED PDF GENERATION ---
-    def create_pdf():
+    # --- PROFESSIONAL PDF GENERATION ---
+    def create_detailed_pdf():
         pdf = FPDF()
         pdf.add_page()
+        
+        # Firm Header
         pdf.set_font("helvetica", 'B', 16)
         pdf.cell(0, 10, "S P C A & Co, Chartered Accountants", ln=True, align='C')
         pdf.set_font("helvetica", '', 12)
-        pdf.cell(0, 10, f"Income Tax Computation - {selected_year}", ln=True, align='C')
+        pdf.cell(0, 10, "Tax Computation Statement - " + selected_year, ln=True, align='C')
         pdf.ln(10)
-        pdf.cell(0, 10, f"Client Name: {u_name}", ln=True)
-        pdf.cell(0, 10, f"PAN: {u_pan}", ln=True)
-        pdf.ln(5)
-        pdf.set_font("helvetica", 'B', 12)
-        pdf.cell(0, 10, "Computation Summary:", ln=True)
-        pdf.set_font("helvetica", 'B', 10)
-        pdf.cell(130, 10, "Particulars", 1)
-        pdf.cell(40, 10, "Amount (INR)", 1, ln=True)
-        pdf.set_font("helvetica", '', 10)
-        for part, amt in zip(summary_data["Particulars"], summary_data["Amount (₹)"]):
-            pdf.cell(130, 10, part, 1)
-            pdf.cell(40, 10, f"{amt:,.0f}", 1, ln=True)
         
-        # CRITICAL FIX: Explicitly cast the output to bytes
-        return bytes(pdf.output()) 
+        # Client Profile
+        pdf.set_font("helvetica", 'B', 11)
+        pdf.cell(0, 8, f"Client Name: {u_name}", ln=True)
+        pdf.cell(0, 8, f"PAN: {u_pan}", ln=True)
+        pdf.ln(5)
+        
+        # 1. Heads of Income
+        pdf.set_font("helvetica", 'B', 12)
+        pdf.set_fill_color(230, 230, 230)
+        pdf.cell(0, 10, " I. INCOME FROM ALL HEADS", ln=True, fill=True)
+        pdf.set_font("helvetica", '', 10)
+        income_details = [
+            ("Salary (Gross)", salary_gross),
+            ("Less: HRA Exemption", -hra_ex),
+            ("Less: Gratuity Exemption", -gra_ex),
+            ("Less: Pension Exemption", -pen_ex),
+            ("Income from House Property", max(0, (rent_rec-m_tax)-loan_int)),
+            ("Income from Business/Prof", max(0, biz_rev-biz_exp)),
+            ("Capital Gains (STCG+LTCG)", stcg + ltcg),
+            ("Income from Other Sources (Slab)", int_inc + misc_inc),
+            ("Special Rate Income (Flat 30%)", special_income)
+        ]
+        for item, amt in income_details:
+            pdf.cell(140, 8, item, 1)
+            pdf.cell(40, 8, f"{amt:,.0f}", 1, ln=True)
+        
+        pdf.set_font("helvetica", 'B', 10)
+        pdf.cell(140, 10, "Gross Total Income (GTI)", 1)
+        pdf.cell(40, 10, f"{gti:,.0f}", 1, ln=True)
+        pdf.ln(5)
+
+        # 2. Exemption Logic
+        pdf.set_font("helvetica", 'B', 12)
+        pdf.cell(0, 10, " II. EXEMPTION CALCULATION LOGIC", ln=True)
+        pdf.set_font("helvetica", '', 10)
+        pdf.multi_cell(0, 8, f"HRA Logic: {hra_log}\nGratuity Logic: {gra_log}\nPension Logic: {pen_log}")
+        pdf.ln(5)
+
+        # 3. Taxable Income & Tax Calc
+        pdf.set_font("helvetica", 'B', 12)
+        pdf.cell(0, 10, " III. TAX COMPUTATION (OPTIMAL REGIME)", ln=True)
+        pdf.set_font("helvetica", '', 10)
+        
+        current_regime_taxable = new_tx_slab if chosen == "New Regime" else old_tx_slab
+        current_breakdown = new_br if chosen == "New Regime" else old_br
+        
+        pdf.cell(140, 8, "Net Taxable Income", 1)
+        pdf.cell(40, 8, f"{current_regime_taxable:,.0f}", 1, ln=True)
+        
+        pdf.ln(2)
+        pdf.set_font("helvetica", 'B', 10)
+        pdf.cell(0, 8, "Slab Breakdown:", ln=True)
+        pdf.set_font("helvetica", '', 9)
+        pdf.multi_cell(0, 6, current_breakdown)
+        
+        pdf.set_font("helvetica", 'B', 10)
+        pdf.cell(140, 8, "Base Tax on Slabs", 1)
+        pdf.cell(40, 8, f"{new_base if chosen=='New Regime' else old_base:,.0f}", 1, ln=True)
+        pdf.cell(140, 8, "Tax on Special Income (30%)", 1)
+        pdf.cell(40, 8, f"{special_tax:,.0f}", 1, ln=True)
+        pdf.cell(140, 8, f"Total Tax incl. Cess (4%)", 1)
+        pdf.cell(40, 8, f"{final_tax:,.0f}", 1, ln=True)
+        pdf.ln(5)
+
+        # 4. Final Payment
+        pdf.set_font("helvetica", 'B', 12)
+        pdf.cell(0, 10, " IV. FINAL NET LIABILITY", ln=True)
+        pdf.set_font("helvetica", '', 10)
+        pdf.cell(140, 8, "Less: Taxes Paid (TDS/Adv/Self)", 1)
+        pdf.cell(40, 8, f"-{total_paid:,.0f}", 1, ln=True)
+        pdf.cell(140, 8, "Add: Sec 234 Interests", 1)
+        pdf.cell(40, 8, f"{int_234:,.0f}", 1, ln=True)
+        
+        pdf.set_font("helvetica", 'B', 11)
+        result_text = f"Net Payable: {final_payable:,.0f}" if final_payable > 0 else f"Net Refund: {final_refund:,.0f}"
+        pdf.cell(140, 10, result_text, 1)
+        pdf.cell(40, 10, f"₹{final_payable if final_payable > 0 else -final_refund:,.0f}", 1, ln=True)
+
+        return bytes(pdf.output())
 
     try:
-        pdf_bytes = create_pdf()
+        pdf_bytes = create_detailed_pdf()
         st.download_button(
-            label="📄 Download Professional PDF Computation", 
+            label="📄 Download Full Professional Computation PDF", 
             data=pdf_bytes, 
-            file_name=f"{u_pan}_tax_comp.pdf", 
+            file_name=f"{u_pan}_full_tax_comp.pdf", 
             mime="application/pdf"
         )
     except Exception as e:
