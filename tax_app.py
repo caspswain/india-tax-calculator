@@ -402,19 +402,51 @@ st.markdown("""
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #0f2557 0%, #1e3a8a 100%);
     }
-    [data-testid="stSidebar"] * { color: white !important; }
-    [data-testid="stSidebar"] .stTextInput > div > div > input {
-        background: rgba(255,255,255,0.1) !important;
-        border: 1px solid rgba(255,255,255,0.3) !important;
-        color: white !important;
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] span,
+    [data-testid="stSidebar"] h1,
+    [data-testid="stSidebar"] h2,
+    [data-testid="stSidebar"] h3,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] div,
+    [data-testid="stSidebar"] .stMarkdown { color: white !important; }
+    
+    /* Text inputs in sidebar - force visible text */
+    [data-testid="stSidebar"] input[type="text"],
+    [data-testid="stSidebar"] input[type="number"],
+    [data-testid="stSidebar"] .stTextInput input,
+    [data-testid="stSidebar"] .stDateInput input {
+        background-color: rgba(255,255,255,0.15) !important;
+        border: 1px solid rgba(255,255,255,0.4) !important;
+        color: #ffffff !important;
         border-radius: 8px !important;
+        caret-color: white !important;
     }
+    [data-testid="stSidebar"] input::placeholder { color: rgba(255,255,255,0.5) !important; }
+    [data-testid="stSidebar"] input:focus {
+        background-color: rgba(255,255,255,0.25) !important;
+        border-color: rgba(255,255,255,0.7) !important;
+        color: #ffffff !important;
+        outline: none !important;
+        box-shadow: 0 0 0 2px rgba(245,158,11,0.5) !important;
+    }
+    /* Selectbox in sidebar */
     [data-testid="stSidebar"] .stSelectbox > div > div {
-        background: rgba(255,255,255,0.1) !important;
-        border: 1px solid rgba(255,255,255,0.3) !important;
+        background: rgba(255,255,255,0.15) !important;
+        border: 1px solid rgba(255,255,255,0.4) !important;
+        border-radius: 8px !important;
+        color: white !important;
+    }
+    [data-testid="stSidebar"] .stSelectbox svg { fill: white !important; }
+    /* Date picker in sidebar */
+    [data-testid="stSidebar"] .stDateInput > div > div {
+        background: rgba(255,255,255,0.15) !important;
+        border: 1px solid rgba(255,255,255,0.4) !important;
         border-radius: 8px !important;
     }
-    [data-testid="stSidebar"] label { color: rgba(255,255,255,0.8) !important; font-size: 0.85rem !important; }
+    /* Checkbox in sidebar */
+    [data-testid="stSidebar"] .stCheckbox label { color: white !important; }
+    [data-testid="stSidebar"] label { color: rgba(255,255,255,0.9) !important; font-size: 0.85rem !important; font-weight: 400 !important; }
     
     /* TABS */
     .stTabs [data-baseweb="tab-list"] { background: #f1f5f9; border-radius: 10px; padding: 4px; gap: 4px; }
@@ -480,7 +512,7 @@ st.markdown("""
 <div class="firm-header">
     <div style="position:relative; z-index:1;">
         <div class="firm-title">🏛️ S P C A & Co, Chartered Accountants</div>
-        <div class="firm-subtitle">Bhubaneswar, Odisha &nbsp;|&nbsp; www.caspca.net &nbsp;|&nbsp; +91 9692156373</div>
+        <div class="firm-subtitle">Bhubaneswar, Odisha &nbsp;|&nbsp; www.caspca.net &nbsp;|&nbsp; +91 7317315507 &nbsp;|&nbsp; +91 9692156373</div>
         <div class="firm-badge">⚖️ Income Tax Computation Tool — FY 2025-26 & 2026-27</div>
     </div>
 </div>
@@ -530,6 +562,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("""
     <div style="font-size:0.78rem; color:rgba(255,255,255,0.6); line-height:1.6;">
+    📞 +91 7317315507<br>
     📞 +91 9692156373<br>
     📧 info@caspca.net<br>
     🌐 www.caspca.net<br><br>
@@ -1228,154 +1261,219 @@ if calculate:
     # PDF GENERATION
     def create_professional_pdf():
         pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=20)
         pdf.add_page()
         pdf.set_margins(15, 15, 15)
-        
-        # Header with branding
+
+        def safe(text):
+            """Strip non-latin characters for fpdf compatibility"""
+            return (str(text)
+                    .replace('\u2014', '-').replace('\u2013', '-')
+                    .replace('\u20b9', 'Rs.').replace('₹', 'Rs.')
+                    .replace('\u2192', '->').replace('\u2018', "'")
+                    .replace('\u2019', "'").replace('\u201c', '"')
+                    .replace('\u201d', '"').encode('latin-1', errors='replace').decode('latin-1'))
+
+        # ---- HEADER BAR ----
         pdf.set_fill_color(15, 37, 87)
-        pdf.rect(0, 0, 210, 40, 'F')
-        pdf.set_font("helvetica", 'B', 18)
+        pdf.rect(0, 0, 210, 42, 'F')
+        pdf.set_font("Helvetica", 'B', 17)
         pdf.set_text_color(255, 255, 255)
-        pdf.set_xy(15, 8)
-        pdf.cell(180, 10, "S P C A & Co, Chartered Accountants", ln=True, align='C')
-        pdf.set_font("helvetica", '', 10)
-        pdf.set_xy(15, 20)
-        pdf.cell(180, 6, "Bhubaneswar, Odisha | www.caspca.net | +91 9692156373 | info@caspca.net", ln=True, align='C')
-        pdf.set_xy(15, 28)
-        pdf.set_font("helvetica", 'B', 11)
+        pdf.set_xy(10, 6)
+        pdf.cell(190, 9, "S P C A & Co, Chartered Accountants", align='C')
+        pdf.set_font("Helvetica", '', 9)
+        pdf.set_xy(10, 16)
+        pdf.cell(190, 6, "Bhubaneswar, Odisha  |  www.caspca.net  |  info@caspca.net", align='C')
+        pdf.set_xy(10, 23)
+        pdf.cell(190, 6, "Ph: +91 7317315507  |  +91 9692156373  |  WhatsApp: +91 7317315507 / 9692156373", align='C')
+        pdf.set_font("Helvetica", 'B', 11)
         pdf.set_text_color(245, 158, 11)
-        pdf.cell(180, 8, f"INCOME TAX COMPUTATION STATEMENT — {selected_year}", ln=True, align='C')
-        
-        # Client Info Box
+        pdf.set_xy(10, 31)
+        pdf.cell(190, 8, safe(f"INCOME TAX COMPUTATION STATEMENT - {selected_year}"), align='C')
+
+        # ---- CLIENT INFO BOX ----
         pdf.set_xy(15, 48)
         pdf.set_fill_color(239, 246, 255)
         pdf.set_draw_color(30, 58, 138)
         pdf.set_line_width(0.5)
-        pdf.rect(15, 45, 180, 22, 'FD')
+        pdf.rect(15, 46, 180, 24, 'FD')
         pdf.set_text_color(15, 37, 87)
-        pdf.set_font("helvetica", 'B', 11)
-        pdf.set_xy(18, 48)
-        pdf.cell(85, 7, f"Client: {u_name}", ln=False)
-        pdf.cell(85, 7, f"PAN: {u_pan}", ln=True)
-        pdf.set_xy(18, 55)
-        pdf.set_font("helvetica", '', 10)
-        pdf.cell(85, 7, f"Assessment Year: {selected_year.replace('FY ', 'AY ').replace('2025-26','2026-27').replace('2026-27','2027-28')}", ln=False)
-        pdf.cell(85, 7, f"Regime: {chosen}", ln=True)
-        
-        pdf.ln(12)
-        
-        def section_header(title):
+        pdf.set_font("Helvetica", 'B', 10)
+        pdf.set_xy(18, 49)
+        ay = "AY 2026-27" if "2025-26" in selected_year else "AY 2027-28"
+        pdf.cell(88, 7, safe(f"Client: {u_name or 'N/A'}"))
+        pdf.cell(88, 7, safe(f"PAN: {u_pan or 'N/A'}"))
+        pdf.set_xy(18, 57)
+        pdf.set_font("Helvetica", '', 10)
+        pdf.cell(88, 7, safe(f"Assessment Year: {ay}"))
+        pdf.cell(88, 7, safe(f"Recommended Regime: {chosen}"))
+
+        pdf.set_y(76)
+
+        def section_hdr(title):
             pdf.set_fill_color(15, 37, 87)
             pdf.set_text_color(255, 255, 255)
-            pdf.set_font("helvetica", 'B', 10)
-            pdf.cell(0, 8, f"  {title}", ln=True, fill=True)
+            pdf.set_font("Helvetica", 'B', 9)
+            pdf.cell(0, 7, safe(f"  {title}"), fill=True, ln=True)
             pdf.set_text_color(30, 41, 59)
-        
-        def data_row(label, amount, bold=False):
-            pdf.set_font("helvetica", 'B' if bold else '', 9)
+
+        def row(label, amount, bold=False, neg=False):
+            pdf.set_font("Helvetica", 'B' if bold else '', 9)
+            amt_str = safe(f"Rs.({abs(amount):,.0f})") if neg else safe(f"Rs.{amount:,.0f}")
             if bold:
                 pdf.set_fill_color(219, 234, 254)
-                pdf.cell(130, 7, f"  {label}", 1, fill=True)
-                pdf.cell(50, 7, f"Rs.{amount:,.0f}", 1, ln=True, align='R')
-            else:
-                pdf.set_fill_color(255, 255, 255)
-                pdf.cell(130, 6, f"  {label}", 1)
-                pdf.cell(50, 6, f"Rs.{amount:,.0f}", 1, ln=True, align='R')
-        
-        # I. Income Heads
-        section_header("I. INCOME FROM ALL HEADS")
-        data_row("Gross Salary Income", salary_gross)
-        data_row("Less: Exemptions (HRA/Gratuity/Leave Enc/LTA)", -total_exemptions)
-        data_row("Less: NPS Employer Contribution u/s 80CCD(2)", -nps_emp_exempt)
-        data_row("Income from House Property", hp_net)
-        data_row("Income from Business/Profession", biz_net)
-        data_row("STCG (slab rate) + Other Sources", stcg_other + other_slab)
-        data_row("Special Rate Income (Crypto/Lottery @ 30%)", special_income)
-        data_row("STCG u/s 111A @ 20%", stcg_111a)
-        data_row("LTCG u/s 112A @ 12.5%", ltcg_112a)
-        data_row("LTCG u/s 112 @ 20%", ltcg_112)
-        data_row("GROSS TOTAL INCOME", gti, bold=True)
-        
-        pdf.ln(3)
-        
-        # II. Old vs New comparison
-        section_header("II. REGIME COMPARISON SUMMARY")
-        pdf.set_font("helvetica", 'B', 9)
-        pdf.set_fill_color(30, 58, 138)
-        pdf.set_text_color(255, 255, 255)
-        pdf.cell(100, 7, "  Particulars", 1, fill=True)
-        pdf.cell(40, 7, "Old Regime", 1, align='C', fill=True)
-        pdf.cell(40, 7, "New Regime", 1, align='C', ln=True, fill=True)
-        
-        pdf.set_text_color(30, 41, 59)
-        rows = [
-            ("Standard Deduction", old_std_ded, new_std_ded),
-            ("Chapter VI-A Deductions", total_old_ded, 0),
-            ("Net Taxable Income (Slab)", old_slab_income, new_slab_income),
-            ("Base Tax", old_base_tax, new_base_tax),
-            ("Surcharge", old_surcharge, new_surcharge),
-            ("CG + Special Tax", cg_tax + old_special_tax, cg_tax + new_special_tax),
-            ("H&EC Cess @ 4%", old_total_before_cess * 0.04, new_total_before_cess * 0.04),
-            ("TOTAL TAX LIABILITY", old_total, new_total),
-        ]
-        
-        for label, old_v, new_v in rows:
-            bold = "TOTAL" in label
-            pdf.set_font("helvetica", 'B' if bold else '', 9)
-            if bold:
-                pdf.set_fill_color(219, 234, 254)
-                pdf.cell(100, 7, f"  {label}", 1, fill=True)
-                pdf.cell(40, 7, f"Rs.{old_v:,.0f}", 1, align='R', fill=True)
-                pdf.cell(40, 7, f"Rs.{new_v:,.0f}", 1, align='R', ln=True, fill=True)
+                pdf.cell(140, 7, safe(f"  {label}"), border=1, fill=True)
+                pdf.cell(40, 7, amt_str, border=1, align='R', fill=True, ln=True)
             else:
                 pdf.set_fill_color(248, 250, 252)
-                pdf.cell(100, 6, f"  {label}", 1, fill=True)
-                pdf.cell(40, 6, f"Rs.{old_v:,.0f}", 1, align='R')
-                pdf.cell(40, 6, f"Rs.{new_v:,.0f}", 1, align='R', ln=True)
-        
-        pdf.ln(3)
-        
-        # III. Final Position
-        section_header("III. FINAL TAX LIABILITY & PAYMENT POSITION")
-        data_row(f"Total Tax Liability ({chosen})", final_tax, bold=True)
-        data_row("Less: TDS on Salary", tds_salary)
-        data_row("Less: TDS on Other Income", tds_other)
-        data_row("Less: Advance Tax Paid", advance_tax)
-        data_row("Less: Self-Assessment Tax", self_assessment)
-        data_row("Less: TCS Credit", tcs_credit)
-        data_row("Add: Interest u/s 234A", int_234a)
-        data_row("Add: Interest u/s 234B (Approx.)", int_234b)
-        
-        if net_payable > 0:
-            data_row("NET AMOUNT PAYABLE", net_payable, bold=True)
-            pdf.set_font("helvetica", 'I', 9)
-            pdf.set_text_color(100, 100, 100)
-            pdf.cell(0, 6, f"  In Words: {words_amount(int(net_payable))}", ln=True)
-        else:
-            data_row("NET REFUND DUE", net_refund, bold=True)
-        
-        pdf.ln(3)
-        
-        # IV. Exemption Logic
-        section_header("IV. EXEMPTION CALCULATION DETAILS")
-        pdf.set_font("helvetica", '', 9)
+                pdf.cell(140, 6, safe(f"  {label}"), border=1, fill=True)
+                pdf.cell(40, 6, amt_str, border=1, align='R', ln=True)
+
+        # ---- SECTION I: INCOME ----
+        section_hdr("I.  INCOME FROM ALL HEADS")
+        row("Gross Salary (Basic+DA+HRA+Bonus+Allowances)", salary_gross)
+        row("Less: Exemptions - HRA u/s 10(13A)", hra_ex, neg=True)
+        row("Less: Exemptions - Gratuity u/s 10(10)", gra_ex, neg=True)
+        row("Less: Exemptions - Leave Encashment u/s 10(10AA)", le_ex, neg=True)
+        row("Less: Exemptions - Commuted Pension u/s 10(10A)", pen_ex, neg=True)
+        row("Less: NPS Employer Contribution u/s 80CCD(2)", nps_emp_exempt, neg=True)
+        row("Income from House Property (Net of Std Ded 30%)", hp_net)
+        row("Income from Business / Profession", biz_net)
+        row("STCG (Slab Rate) + Other Sources (Slab)", stcg_other + other_slab)
+        row("Special Rate Income - Crypto/Lottery @ 30%", special_income)
+        row("STCG u/s 111A (Listed Equity @ 20%)", stcg_111a)
+        row("LTCG u/s 112A (Equity > 12 months @ 12.5%)", ltcg_112a)
+        row("LTCG u/s 112 (Other Assets @ 20%)", ltcg_112)
+        row("GROSS TOTAL INCOME (GTI)", gti, bold=True)
+
+        pdf.ln(2)
+
+        # ---- SECTION II: REGIME COMPARISON ----
+        section_hdr("II.  OLD REGIME vs NEW REGIME - COMPARISON")
+        pdf.set_font("Helvetica", 'B', 9)
+        pdf.set_fill_color(30, 58, 138)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(100, 7, "  Particulars", border=1, fill=True)
+        pdf.cell(40, 7, "Old Regime (Rs.)", border=1, align='C', fill=True)
+        pdf.cell(40, 7, "New Regime (Rs.)", border=1, align='C', fill=True, ln=True)
         pdf.set_text_color(30, 41, 59)
-        pdf.multi_cell(0, 6, f"HRA (Sec 10(13A)): Rs.{hra_ex:,.0f}\n{hra_log.replace('₹','Rs.')}")
-        pdf.multi_cell(0, 6, f"\nGratuity (Sec 10(10)): Rs.{gra_ex:,.0f}\n{gra_log.replace('₹','Rs.')}")
-        pdf.multi_cell(0, 6, f"\nLeave Encashment (Sec 10(10AA)): Rs.{le_ex:,.0f}\n{le_log.replace('₹','Rs.')}")
-        pdf.multi_cell(0, 6, f"\nCommuted Pension (Sec 10(10A)): Rs.{pen_ex:,.0f}\n{pen_log.replace('₹','Rs.')}")
-        
-        # Footer
-        pdf.set_y(-25)
+
+        comp_rows = [
+            ("Standard Deduction", old_std_ded, new_std_ded),
+            ("Chapter VI-A Deductions (80C/D/E/G etc.)", total_old_ded, 0),
+            ("Net Taxable Income (Slab)", old_slab_income, new_slab_income),
+            ("Base Tax on Slab Income", old_base_tax, new_base_tax),
+            ("Surcharge", old_surcharge, new_surcharge),
+            ("CG Tax (111A/112A/112) - Flat Rates", cg_tax, cg_tax),
+            ("Special Income Tax @ 30% (Crypto/Lottery)", special_income * 0.30, special_income * 0.30),
+            ("H&EC Cess @ 4%", old_total_before_cess * 0.04, new_total_before_cess * 0.04),
+            ("TOTAL TAX LIABILITY (incl. Cess)", old_total, new_total),
+        ]
+        for lbl, ov, nv in comp_rows:
+            is_total = "TOTAL" in lbl
+            pdf.set_font("Helvetica", 'B' if is_total else '', 9)
+            if is_total:
+                pdf.set_fill_color(219, 234, 254)
+                pdf.cell(100, 7, safe(f"  {lbl}"), border=1, fill=True)
+                pdf.cell(40, 7, safe(f"Rs.{ov:,.0f}"), border=1, align='R', fill=True)
+                pdf.cell(40, 7, safe(f"Rs.{nv:,.0f}"), border=1, align='R', fill=True, ln=True)
+            else:
+                pdf.set_fill_color(248, 250, 252)
+                pdf.cell(100, 6, safe(f"  {lbl}"), border=1, fill=True)
+                pdf.cell(40, 6, safe(f"Rs.{ov:,.0f}"), border=1, align='R')
+                pdf.cell(40, 6, safe(f"Rs.{nv:,.0f}"), border=1, align='R', ln=True)
+
+        # Recommended row
+        pdf.set_font("Helvetica", 'B', 9)
+        pdf.set_fill_color(236, 253, 245)
+        pdf.set_text_color(6, 95, 70)
+        old_rec = "*** RECOMMENDED ***" if chosen == "Old Regime" else ""
+        new_rec = "*** RECOMMENDED ***" if chosen == "New Regime" else ""
+        pdf.cell(100, 7, "  Recommendation", border=1, fill=True)
+        pdf.cell(40, 7, safe(old_rec), border=1, align='C', fill=True)
+        pdf.cell(40, 7, safe(new_rec), border=1, align='C', fill=True, ln=True)
+        pdf.set_text_color(30, 41, 59)
+
+        pdf.ln(2)
+
+        # ---- SECTION III: DEDUCTIONS DETAIL ----
+        section_hdr("III.  DEDUCTION DETAILS (OLD REGIME)")
+        row("Sec 80C - PPF/EPF/LIC/ELSS/Home Loan Principal", s80c_total)
+        row("Sec 80D - Health Insurance (Self + Parents)", s80d_total)
+        row("Sec 80CCD(1B) - NPS Self Contribution", s80ccd_total)
+        row("Sec 80G - Donations", s80g)
+        row("Sec 80E - Education Loan Interest", s80e)
+        row("Sec 80EEA - Additional Home Loan Interest", min(s80ee, 150000))
+        row("Sec 80TTA/TTB - Savings/Bank Interest", tta_ded)
+        row("TOTAL CHAPTER VI-A DEDUCTIONS", total_old_ded, bold=True)
+
+        pdf.ln(2)
+
+        # ---- SECTION IV: FINAL POSITION ----
+        section_hdr("IV.  FINAL NET TAX POSITION")
+        row(safe(f"Total Tax Liability ({chosen})"), final_tax, bold=True)
+        row("Less: TDS on Salary (Form 16)", tds_salary, neg=True)
+        row("Less: TDS on Other Income (26AS/AIS)", tds_other, neg=True)
+        row("Less: Advance Tax Paid", advance_tax, neg=True)
+        row("Less: Self-Assessment Tax", self_assessment, neg=True)
+        row("Less: TCS Credit", tcs_credit, neg=True)
+        row("Add: Interest u/s 234A (Late Filing)", int_234a)
+        row("Add: Interest u/s 234B (Advance Tax Short)", int_234b)
+        if net_payable > 0:
+            row("NET TAX PAYABLE (Self-Assessment)", net_payable, bold=True)
+            pdf.set_font("Helvetica", 'I', 9)
+            pdf.set_text_color(100, 100, 100)
+            pdf.cell(0, 6, safe(f"  Amount in Words: {words_amount(int(net_payable))}"), ln=True)
+        else:
+            row("NET REFUND DUE (Claim in ITR)", net_refund, bold=True)
+            pdf.set_font("Helvetica", 'I', 9)
+            pdf.set_text_color(100, 100, 100)
+            pdf.cell(0, 6, safe(f"  Amount in Words: {words_amount(int(net_refund))}"), ln=True)
+
+        pdf.ln(2)
+
+        # ---- SECTION V: EXEMPTION LOGIC ----
+        section_hdr("V.  EXEMPTION CALCULATION LOGIC")
+        pdf.set_font("Helvetica", '', 8)
+        pdf.set_text_color(30, 41, 59)
+        items = [
+            (f"HRA Exemption u/s 10(13A): Rs.{hra_ex:,.0f}", hra_log),
+            (f"Gratuity Exemption u/s 10(10): Rs.{gra_ex:,.0f}", gra_log),
+            (f"Leave Encashment u/s 10(10AA): Rs.{le_ex:,.0f}", le_log),
+            (f"Commuted Pension u/s 10(10A): Rs.{pen_ex:,.0f}", pen_log),
+        ]
+        for heading, logic in items:
+            pdf.set_font("Helvetica", 'B', 8)
+            pdf.cell(0, 5, safe(heading), ln=True)
+            pdf.set_font("Helvetica", '', 8)
+            pdf.set_text_color(80, 80, 80)
+            pdf.multi_cell(0, 5, safe(logic))
+            pdf.set_text_color(30, 41, 59)
+            pdf.ln(1)
+
+        # ---- SLAB BREAKDOWN ----
+        section_hdr(safe(f"VI.  SLAB-WISE TAX BREAKDOWN ({chosen})"))
+        pdf.set_font("Helvetica", '', 8)
+        slab_text = new_breakdown if chosen == "New Regime" else old_breakdown
+        pdf.set_text_color(30, 41, 59)
+        pdf.multi_cell(0, 5, safe(slab_text if slab_text else "Rebate u/s 87A applied - Nil Tax"))
+
+        # ---- FOOTER ----
+        pdf.set_y(-28)
         pdf.set_fill_color(241, 245, 249)
-        pdf.rect(0, pdf.get_y(), 210, 25, 'F')
-        pdf.set_font("helvetica", 'I', 8)
+        pdf.set_draw_color(200, 210, 220)
+        pdf.rect(0, pdf.get_y(), 210, 28, 'FD')
+        pdf.set_font("Helvetica", 'I', 7.5)
         pdf.set_text_color(100, 116, 139)
-        pdf.cell(0, 5, "DISCLAIMER: This computation is for advisory/planning purposes. Actual liability may differ. Not a substitute for professional advice.", ln=True, align='C')
-        pdf.cell(0, 5, f"Prepared by: S P C A & Co, Chartered Accountants, Bhubaneswar | www.caspca.net | Dated: {date.today().strftime('%d-%b-%Y')}", ln=True, align='C')
-        pdf.cell(0, 5, "Subject to changes in Income Tax Act, Finance Act provisions and CBDT circulars.", ln=True, align='C')
-        
+        pdf.set_xy(10, pdf.get_y() + 2)
+        pdf.cell(190, 4, "DISCLAIMER: This computation is for advisory/planning purposes only. Actual tax liability may differ based on specific facts and applicable law.", align='C', ln=True)
+        pdf.set_x(10)
+        pdf.cell(190, 4, safe(f"Prepared by: S P C A & Co, Chartered Accountants | Ph: +91 7317315507, +91 9692156373 | www.caspca.net | Dated: {date.today().strftime('%d-%b-%Y')}"), align='C', ln=True)
+        pdf.set_x(10)
+        pdf.cell(190, 4, "Subject to changes per Income Tax Act, Finance Acts and CBDT circulars. Consult your CA before filing.", align='C', ln=True)
+
         return bytes(pdf.output())
+
     
     # DOWNLOAD BUTTONS
     st.markdown('<div class="section-header">📥 Download Reports</div>', unsafe_allow_html=True)
@@ -1396,31 +1494,401 @@ if calculate:
             st.error(f"PDF Error: {e}")
     
     with col_dl2:
-        # Excel Export
+        # Excel Export - Full computation matching app output
         import io
-        output = io.BytesIO()
-        
-        df_export = pd.DataFrame({
-            "Particulars": [
-                "Client Name", "PAN", "Financial Year", "Assessment Year",
-                "Gross Total Income", "Optimal Regime", "Total Tax",
-                "TDS/Advance Tax Paid", "Net Payable", "Net Refund"
-            ],
-            "Value": [
-                u_name, u_pan, selected_year,
-                selected_year.replace("FY 2025-26", "AY 2026-27").replace("FY 2026-27", "AY 2027-28"),
-                gti, chosen, final_tax,
-                total_paid, net_payable, net_refund
-            ]
-        })
-        
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_export.to_excel(writer, sheet_name="Summary", index=False)
-            pd.DataFrame(final_data).to_excel(writer, sheet_name="Detailed Computation", index=False)
-        
+        from openpyxl import Workbook
+        from openpyxl.styles import (Font, PatternFill, Alignment, Border, Side, numbers)
+        from openpyxl.utils import get_column_letter
+
+        xls_buf = io.BytesIO()
+        wb = Workbook()
+
+        navy_fill   = PatternFill("solid", fgColor="0F2557")
+        blue_fill   = PatternFill("solid", fgColor="DBEAfe")
+        grey_fill   = PatternFill("solid", fgColor="F8FAFC")
+        green_fill  = PatternFill("solid", fgColor="ECFDF5")
+        gold_fill   = PatternFill("solid", fgColor="FEF9C3")
+        white_fill  = PatternFill("solid", fgColor="FFFFFF")
+        thin = Side(style='thin', color="CCCCCC")
+        border = Border(left=thin, right=thin, top=thin, bottom=thin)
+
+        def xls_hdr(ws, title):
+            """Write a navy section header spanning columns A:C"""
+            ws.append([title, "", ""])
+            r = ws.max_row
+            for c in range(1, 4):
+                cell = ws.cell(r, c)
+                cell.fill = navy_fill
+                cell.font = Font(color="FFFFFF", bold=True, size=10)
+                cell.border = border
+                cell.alignment = Alignment(horizontal='left')
+
+        def xls_row(ws, label, val, bold=False, is_blue=False):
+            ws.append([label, "", val])
+            r = ws.max_row
+            fill = blue_fill if is_blue else grey_fill
+            for c in [1, 2]:
+                ws.cell(r, c).fill = fill
+                ws.cell(r, c).font = Font(bold=bold, size=9)
+                ws.cell(r, c).border = border
+            vc = ws.cell(r, 3)
+            vc.fill = fill
+            vc.font = Font(bold=bold, size=9)
+            vc.border = border
+            vc.number_format = '#,##0'
+            vc.alignment = Alignment(horizontal='right')
+            vc.value = val
+
+        def xls_blank(ws):
+            ws.append(["", "", ""])
+
+        # ===== SHEET 1: SUMMARY =====
+        ws1 = wb.active
+        ws1.title = "Summary"
+        ws1.column_dimensions['A'].width = 45
+        ws1.column_dimensions['B'].width = 25
+        ws1.column_dimensions['C'].width = 20
+
+        # Title
+        ws1.merge_cells('A1:C1')
+        ws1['A1'] = "S P C A & Co, Chartered Accountants - Income Tax Computation"
+        ws1['A1'].font = Font(bold=True, size=13, color="0F2557")
+        ws1['A1'].alignment = Alignment(horizontal='center')
+        ws1['A1'].fill = PatternFill("solid", fgColor="EFF6FF")
+
+        ws1.merge_cells('A2:C2')
+        ay = "AY 2026-27" if "2025-26" in selected_year else "AY 2027-28"
+        ws1['A2'] = f"Ph: +91 7317315507 / +91 9692156373  |  www.caspca.net  |  {selected_year} ({ay})"
+        ws1['A2'].font = Font(size=9, italic=True, color="64748B")
+        ws1['A2'].alignment = Alignment(horizontal='center')
+
+        ws1.append(["", "", ""])
+        ws1.append(["CLIENT DETAILS", "", ""])
+        ws1['A4'].font = Font(bold=True, color="0F2557")
+
+        client_rows = [
+            ("Client Name", u_name or "N/A"),
+            ("PAN Number", u_pan or "N/A"),
+            ("Date of Birth", str(u_dob)),
+            ("Age", f"{age} years"),
+            ("Financial Year", selected_year),
+            ("Assessment Year", ay),
+            ("Recommended Regime", chosen),
+            ("Effective Tax Rate", f"{(final_tax/gti*100):.2f}%" if gti > 0 else "0%"),
+        ]
+        for label, val in client_rows:
+            ws1.append([label, val, ""])
+            r = ws1.max_row
+            ws1.cell(r, 1).font = Font(bold=True, size=9)
+            ws1.cell(r, 2).font = Font(size=9)
+
+        xls_blank(ws1)
+        xls_hdr(ws1, "KEY FIGURES")
+        summary_nums = [
+            ("Gross Total Income (GTI)", gti, False),
+            ("Total Exemptions (HRA/Gratuity/LE/Pension)", total_exemptions, False),
+            (f"Total Tax Liability ({chosen})", final_tax, True),
+            ("Total Taxes Already Paid (TDS + Adv Tax)", total_paid, False),
+            ("Interest u/s 234A + 234B", total_interest, False),
+            ("NET AMOUNT PAYABLE" if net_payable > 0 else "NET REFUND DUE",
+             net_payable if net_payable > 0 else net_refund, True),
+        ]
+        for lbl, val, bold in summary_nums:
+            xls_row(ws1, lbl, val, bold=bold, is_blue=bold)
+
+        # ===== SHEET 2: INCOME DETAILS =====
+        ws2 = wb.create_sheet("Income Details")
+        ws2.column_dimensions['A'].width = 52
+        ws2.column_dimensions['B'].width = 5
+        ws2.column_dimensions['C'].width = 20
+
+        ws2.merge_cells('A1:C1')
+        ws2['A1'] = "INCOME FROM ALL HEADS - DETAILED BREAKUP"
+        ws2['A1'].font = Font(bold=True, size=11, color="0F2557")
+        ws2['A1'].fill = PatternFill("solid", fgColor="EFF6FF")
+        ws2['A1'].alignment = Alignment(horizontal='center')
+        xls_blank(ws2)
+
+        xls_hdr(ws2, "SALARY INCOME")
+        salary_items = [
+            ("Basic Salary", basic),
+            ("Dearness Allowance (DA)", da),
+            ("HRA Received", actual_hra),
+            ("Gratuity Received", gratuity_rec),
+            ("Commuted Pension Received", pension_commuted),
+            ("Uncommuted (Monthly) Pension x12", uncommuted_pension),
+            ("Bonus / Incentives", bonus),
+            ("Leave Travel Allowance (LTA)", lta),
+            ("Other Allowances", other_allow),
+            ("Perquisites / ESOPs", perquisites),
+            ("NPS Employer Contribution", nps_employer),
+            ("Leave Encashment Received", leave_enc),
+            ("GROSS SALARY", salary_gross, True),
+            ("Less: HRA Exemption u/s 10(13A)", -hra_ex),
+            ("Less: Gratuity Exemption u/s 10(10)", -gra_ex),
+            ("Less: Leave Encashment u/s 10(10AA)", -le_ex),
+            ("Less: Commuted Pension u/s 10(10A)", -pen_ex),
+            ("Less: LTA Exemption u/s 10(5)", -lta_exempt),
+            ("Less: NPS Employer Contribution u/s 80CCD(2)", -nps_emp_exempt),
+            ("NET SALARY (Before Std Deduction)", salary_taxable_before_std, True),
+        ]
+        for item in salary_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws2, item[0], item[1], bold=bold, is_blue=bold)
+
+        xls_blank(ws2)
+        xls_hdr(ws2, "HOUSE PROPERTY")
+        hp_items = [
+            ("Rent Received", rent_rec),
+            ("Less: Municipal Taxes", -m_tax),
+            ("Less: Standard Deduction @ 30%", -round(0.30 * max(0, rent_rec - m_tax))),
+            ("Less: Home Loan Interest u/s 24(b)", -loan_int),
+            ("NET HP INCOME / (LOSS) [Set-off max Rs.2L]", hp_net, True),
+        ]
+        for item in hp_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws2, item[0], item[1], bold=bold, is_blue=bold)
+
+        xls_blank(ws2)
+        xls_hdr(ws2, "BUSINESS / PROFESSION")
+        biz_items = [
+            ("Gross Receipts / Turnover", biz_rev),
+            ("Business Expenses / Depreciation", -biz_exp),
+            ("Business Loss Brought Forward", -brought_fwd_loss),
+            ("NET BUSINESS INCOME", biz_net, True),
+        ]
+        for item in biz_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws2, item[0], item[1], bold=bold, is_blue=bold)
+
+        xls_blank(ws2)
+        xls_hdr(ws2, "CAPITAL GAINS")
+        cg_items = [
+            ("STCG u/s 111A (Listed Equity @ 20%)", stcg_111a),
+            ("Other STCG (@ Slab Rate)", stcg_other),
+            ("LTCG u/s 112A (Equity @ 12.5% - First 1.25L Exempt)", ltcg_112a),
+            ("LTCG u/s 112 (Other Assets @ 20%)", ltcg_112),
+            ("Less: LTCG Exemption u/s 54/54EC/54F", -ltcg_exemption),
+            ("Flat Rate CG Tax (before cess)", cg_tax, True),
+        ]
+        for item in cg_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws2, item[0], item[1], bold=bold, is_blue=bold)
+
+        xls_blank(ws2)
+        xls_hdr(ws2, "OTHER SOURCES")
+        other_items = [
+            ("Bank Interest (SB/FD)", int_bank),
+            ("NSC Interest / Post Office", int_nsc),
+            ("Dividends Received", dividends),
+            ("Miscellaneous Income", misc_inc),
+            ("Crypto / VDA Income (@ 30%)", crypto_inc),
+            ("Lottery / Game Show Winnings (@ 30%)", lottery_inc),
+            ("TOTAL OTHER SOURCES", other_slab + special_income, True),
+        ]
+        for item in other_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws2, item[0], item[1], bold=bold, is_blue=bold)
+
+        xls_blank(ws2)
+        xls_hdr(ws2, "GROSS TOTAL INCOME SUMMARY")
+        gti_items = [
+            ("Salary (Net of Exemptions)", salary_taxable_before_std),
+            ("House Property", hp_net),
+            ("Business / Profession", biz_net),
+            ("Capital Gains (Slab Rate - STCG Other)", stcg_other),
+            ("Other Sources (Slab)", int_bank + int_nsc + dividends + misc_inc),
+            ("Special Rate Income (30%)", special_income),
+            ("STCG u/s 111A (20%)", stcg_111a),
+            ("LTCG u/s 112A (12.5%)", ltcg_112a),
+            ("LTCG u/s 112 (20%)", ltcg_112),
+            ("GROSS TOTAL INCOME (GTI)", gti, True),
+        ]
+        for item in gti_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws2, item[0], item[1], bold=bold, is_blue=bold)
+
+        # ===== SHEET 3: REGIME COMPARISON =====
+        ws3 = wb.create_sheet("Regime Comparison")
+        ws3.column_dimensions['A'].width = 50
+        ws3.column_dimensions['B'].width = 22
+        ws3.column_dimensions['C'].width = 22
+
+        ws3.merge_cells('A1:C1')
+        ws3['A1'] = "OLD REGIME vs NEW REGIME - DETAILED COMPARISON"
+        ws3['A1'].font = Font(bold=True, size=11, color="0F2557")
+        ws3['A1'].fill = PatternFill("solid", fgColor="EFF6FF")
+        ws3['A1'].alignment = Alignment(horizontal='center')
+
+        # Header row
+        headers = ["Particulars", "Old Regime (Rs.)", "New Regime (Rs.)"]
+        ws3.append(headers)
+        r = ws3.max_row
+        for c, h in enumerate(headers, 1):
+            cell = ws3.cell(r, c)
+            cell.fill = navy_fill
+            cell.font = Font(color="FFFFFF", bold=True, size=10)
+            cell.alignment = Alignment(horizontal='center' if c > 1 else 'left')
+            cell.border = border
+
+        comp_data = [
+            ("Gross Total Income (GTI)", gti, gti),
+            ("Less: Standard Deduction", old_std_ded, new_std_ded),
+            ("Less: Chapter VI-A Deductions", total_old_ded, 0),
+            ("Net Slab Taxable Income", old_slab_income, new_slab_income),
+            ("", "", ""),
+            ("Base Tax on Slab Income", old_base_tax, new_base_tax),
+            ("Add: Surcharge", old_surcharge, new_surcharge),
+            ("Add: CG Tax (Flat Rates)", cg_tax, cg_tax),
+            ("Add: Special Income Tax @ 30%", special_income * 0.30, special_income * 0.30),
+            ("Add: H&EC Cess @ 4%", old_total_before_cess * 0.04, new_total_before_cess * 0.04),
+            ("TOTAL TAX LIABILITY", old_total, new_total),
+            ("", "", ""),
+            ("Less: TDS (Salary + Other)", tds_salary + tds_other, tds_salary + tds_other),
+            ("Less: Advance Tax + Self Assessment", advance_tax + self_assessment + tcs_credit, advance_tax + self_assessment + tcs_credit),
+            ("Add: Interest u/s 234A + 234B", total_interest, total_interest),
+            ("NET PAYABLE / (REFUND)", old_total - total_paid + total_interest, new_total - total_paid + total_interest),
+            ("", "", ""),
+            ("RECOMMENDED REGIME", "*** OLD REGIME ***" if chosen == "Old Regime" else "", "*** NEW REGIME ***" if chosen == "New Regime" else ""),
+            ("TAX SAVING vs OTHER REGIME", saving if chosen == "Old Regime" else 0, saving if chosen == "New Regime" else 0),
+        ]
+        for row_data in comp_data:
+            lbl, ov, nv = row_data
+            is_total = lbl in ("TOTAL TAX LIABILITY", "NET PAYABLE / (REFUND)", "GROSS TOTAL INCOME (GTI)", "RECOMMENDED REGIME", "TAX SAVING vs OTHER REGIME")
+            ws3.append([lbl, ov if isinstance(ov, str) else ov, nv if isinstance(nv, str) else nv])
+            r = ws3.max_row
+            fill = blue_fill if is_total else (grey_fill if lbl else white_fill)
+            for c in range(1, 4):
+                cell = ws3.cell(r, c)
+                cell.fill = fill
+                cell.font = Font(bold=is_total, size=9)
+                cell.border = border
+                if c > 1 and not isinstance(cell.value, str):
+                    cell.number_format = '#,##0'
+                    cell.alignment = Alignment(horizontal='right')
+
+        # ===== SHEET 4: DEDUCTIONS =====
+        ws4 = wb.create_sheet("Deductions")
+        ws4.column_dimensions['A'].width = 52
+        ws4.column_dimensions['B'].width = 5
+        ws4.column_dimensions['C'].width = 20
+
+        ws4.merge_cells('A1:C1')
+        ws4['A1'] = "CHAPTER VI-A DEDUCTIONS (OLD REGIME ONLY)"
+        ws4['A1'].font = Font(bold=True, size=11, color="0F2557")
+        ws4['A1'].fill = PatternFill("solid", fgColor="EFF6FF")
+        ws4['A1'].alignment = Alignment(horizontal='center')
+        xls_blank(ws4)
+
+        xls_hdr(ws4, "SECTION 80C GROUP (MAX Rs.1,50,000)")
+        s80c_items = [
+            ("PPF / EPF / VPF", s80c_ppf),
+            ("LIC Premium / ULIP", s80c_lic),
+            ("ELSS Mutual Fund", s80c_elss),
+            ("Home Loan Principal Repayment", s80c_housing),
+            ("Children Tuition Fee (max 2 children)", s80c_tuition),
+            ("NSC / SCSS / Tax Saver FD", s80c_nsc),
+            ("TOTAL 80C (Capped at Rs.1,50,000)", s80c_total, True),
+        ]
+        for item in s80c_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws4, item[0], item[1], bold=bold, is_blue=bold)
+
+        xls_blank(ws4)
+        xls_hdr(ws4, "OTHER DEDUCTIONS")
+        other_ded = [
+            (f"80D - Health Insurance Self/Family (Max Rs.{s80d_limit_self:,})", min(s80d_self, s80d_limit_self)),
+            ("80D - Health Insurance Parents (Max Rs.50,000)", min(s80d_parent, 50000)),
+            ("80CCD(1B) - NPS Self (Max Rs.50,000)", s80ccd_total),
+            ("80G - Donations to Approved Funds", s80g),
+            ("80E - Education Loan Interest (No Limit)", s80e),
+            ("80EEA - Additional Home Loan Interest (Max Rs.1.5L)", min(s80ee, 150000)),
+            ("80TTA/80TTB - Bank/PO Interest", tta_ded),
+            ("TOTAL CHAPTER VI-A DEDUCTIONS", total_old_ded, True),
+        ]
+        for item in other_ded:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws4, item[0], item[1], bold=bold, is_blue=bold)
+
+        # ===== SHEET 5: FINAL POSITION =====
+        ws5 = wb.create_sheet("Final Tax Position")
+        ws5.column_dimensions['A'].width = 52
+        ws5.column_dimensions['B'].width = 5
+        ws5.column_dimensions['C'].width = 20
+
+        ws5.merge_cells('A1:C1')
+        ws5['A1'] = f"FINAL TAX POSITION - {chosen.upper()} SELECTED"
+        ws5['A1'].font = Font(bold=True, size=11, color="0F2557")
+        ws5['A1'].fill = PatternFill("solid", fgColor="EFF6FF")
+        ws5['A1'].alignment = Alignment(horizontal='center')
+        xls_blank(ws5)
+
+        xls_hdr(ws5, "TAX COMPUTATION")
+        chosen_slab = new_slab_income if chosen == "New Regime" else old_slab_income
+        chosen_base = new_base_tax if chosen == "New Regime" else old_base_tax
+        chosen_sur = new_surcharge if chosen == "New Regime" else old_surcharge
+        chosen_tbc = new_total_before_cess if chosen == "New Regime" else old_total_before_cess
+        final_items = [
+            ("Net Taxable Slab Income", chosen_slab),
+            (f"Slab Tax ({'New' if chosen == 'New Regime' else 'Old'} Regime)", chosen_base),
+            ("Add: Surcharge", chosen_sur),
+            ("Add: CG Tax (111A/112A/112) Flat Rate", cg_tax),
+            ("Add: Special Income Tax @ 30% (Crypto/Lottery)", special_income * 0.30),
+            ("Add: H&EC Cess @ 4%", chosen_tbc * 0.04),
+            ("TOTAL TAX LIABILITY", final_tax, True),
+        ]
+        for item in final_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws5, item[0], item[1], bold=bold, is_blue=bold)
+
+        xls_blank(ws5)
+        xls_hdr(ws5, "TAXES PAID / CREDITS")
+        paid_items = [
+            ("TDS on Salary (Form 16 Part A)", tds_salary),
+            ("TDS on Other Income (26AS/AIS)", tds_other),
+            ("Advance Tax Paid (All Instalments)", advance_tax),
+            ("Self-Assessment Tax Paid", self_assessment),
+            ("TCS Credit", tcs_credit),
+            ("TOTAL TAXES PAID", total_paid, True),
+        ]
+        for item in paid_items:
+            bold = len(item) == 3 and item[2]
+            xls_row(ws5, item[0], item[1], bold=bold, is_blue=bold)
+
+        xls_blank(ws5)
+        xls_hdr(ws5, "INTEREST & FINAL POSITION")
+        interest_items = [
+            ("Interest u/s 234A (Late Filing)", int_234a),
+            ("Interest u/s 234B (Advance Tax Short)", int_234b),
+            ("Total Interest u/s 234", total_interest),
+        ]
+        for item in interest_items:
+            xls_row(ws5, item[0], item[1])
+
+        xls_blank(ws5)
+        if net_payable > 0:
+            xls_row(ws5, "NET TAX PAYABLE (Self-Assessment Tax)", net_payable, bold=True, is_blue=True)
+            xls_row(ws5, "Amount in Words", 0)
+            ws5.cell(ws5.max_row, 2).value = words_amount(int(net_payable))
+            ws5.cell(ws5.max_row, 2).font = Font(italic=True, size=9)
+        else:
+            xls_row(ws5, "NET REFUND DUE (Claim in ITR)", net_refund, bold=True, is_blue=True)
+            xls_row(ws5, "Amount in Words", 0)
+            ws5.cell(ws5.max_row, 2).value = words_amount(int(net_refund))
+            ws5.cell(ws5.max_row, 2).font = Font(italic=True, size=9)
+
+        xls_blank(ws5)
+        xls_hdr(ws5, "TAX PLANNING NOTES")
+        ws5.append([f"Regime comparison saving: Rs.{saving:,.0f} by choosing {chosen}", "", ""])
+        ws5.append([f"Effective Tax Rate: {(final_tax/gti*100):.2f}%" if gti > 0 else "0%", "", ""])
+        ws5.append([f"Prepared by: S P C A & Co, CA | Ph: +91 7317315507, +91 9692156373 | www.caspca.net", "", ""])
+        ws5.append([f"Date: {date.today().strftime('%d-%b-%Y')}", "", ""])
+
+        wb.save(xls_buf)
+
         st.download_button(
-            label="📊 Download Excel Report",
-            data=output.getvalue(),
+            label="📊 Download Full Excel Report",
+            data=xls_buf.getvalue(),
             file_name=f"TaxComp_{u_pan or 'Client'}_{selected_year}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
@@ -1440,7 +1908,7 @@ if calculate:
             f"✅ Taxes Paid: ₹{total_paid:,.0f}\n"
             f"{'🔴 Payable: ₹' + str(f'{net_payable:,.0f}') if net_payable > 0 else '🟢 Refund: ₹' + str(f'{net_refund:,.0f}')}\n"
             f"━━━━━━━━━━━━━━━━━\n"
-            f"📞 S P C A & Co: +91 9692156373\n"
+            f"📞 S P C A & Co: +91 7317315507 / +91 9692156373\n"
             f"🌐 www.caspca.net"
         )
         st.download_button(
@@ -1459,7 +1927,7 @@ st.markdown("""
     <strong>S P C A & Co, Chartered Accountants</strong> &nbsp;|&nbsp; 
     Bhubaneswar, Odisha &nbsp;|&nbsp;
     <a href="http://www.caspca.net" target="_blank">www.caspca.net</a> &nbsp;|&nbsp;
-    📞 +91 9692156373 &nbsp;|&nbsp;
+    📞 +91 7317315507 &nbsp;|&nbsp; +91 9692156373 &nbsp;|&nbsp;
     ✉️ info@caspca.net<br><br>
     <em>Providing quality CA services in GST, Income Tax, Audit, Corporate Compliance & Project Finance</em>
 </div>
