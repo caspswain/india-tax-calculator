@@ -47,7 +47,7 @@ def calculate_slab_tax(taxable_income, year, regime):
             taxable_in_slab = min(taxable_income, limit) - prev_limit
             slab_tax = taxable_in_slab * rate
             tax += slab_tax
-            breakdown += f"₹{prev_limit:,.0f}-₹{limit:,.0f} @ {rate*100}%: ₹{slab_tax:,.0f}\n"
+            breakdown += f"Rs.{prev_limit:,.0f}-Rs.{limit:,.0f} @ {rate*100}%: Rs.{slab_tax:,.0f}\n"
             prev_limit = limit
         else: break
     return tax, breakdown
@@ -143,7 +143,6 @@ with st.expander("📁 DETAILED INCOME & EXEMPTION INPUTS", expanded=True):
 # ENGINE
 # ==========================================
 if st.button("🚀 GENERATE FINAL COMPUTATION"):
-    # Exemption Logic
     hra_ex, hra_log = calc_hra(actual_hra, basic, rent_paid, city)
     gra_ex, gra_log = calc_gratuity(gratuity_rec, g_years, g_last_sal)
     pen_ex, pen_log = calc_pension(pension_rec, p_total, p_percent)
@@ -195,7 +194,7 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
     }
     st.table(pd.DataFrame(summary_data))
 
-    # --- PROFESSIONAL PDF GENERATION ---
+    # --- PDF GENERATION (FONT-SAFE VERSION) ---
     def create_detailed_pdf():
         pdf = FPDF()
         pdf.add_page()
@@ -231,18 +230,22 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
         ]
         for item, amt in income_details:
             pdf.cell(140, 8, item, 1)
-            pdf.cell(40, 8, f"{amt:,.0f}", 1, ln=True)
+            pdf.cell(40, 8, f"Rs.{amt:,.0f}", 1, ln=True)
         
         pdf.set_font("helvetica", 'B', 10)
         pdf.cell(140, 10, "Gross Total Income (GTI)", 1)
-        pdf.cell(40, 10, f"{gti:,.0f}", 1, ln=True)
+        pdf.cell(40, 10, f"Rs.{gti:,.0f}", 1, ln=True)
         pdf.ln(5)
 
         # 2. Exemption Logic
         pdf.set_font("helvetica", 'B', 12)
         pdf.cell(0, 10, " II. EXEMPTION CALCULATION LOGIC", ln=True)
         pdf.set_font("helvetica", '', 10)
-        pdf.multi_cell(0, 8, f"HRA Logic: {hra_log}\nGratuity Logic: {gra_log}\nPension Logic: {pen_log}")
+        # Replace ₹ with Rs. in logs for PDF
+        pdf_hra_log = hra_log.replace("₹", "Rs.")
+        pdf_gra_log = gra_log.replace("₹", "Rs.")
+        pdf_pen_log = pen_log.replace("₹", "Rs.")
+        pdf.multi_cell(0, 8, f"HRA Logic: {pdf_hra_log}\nGratuity Logic: {pdf_gra_log}\nPension Logic: {pdf_pen_log}")
         pdf.ln(5)
 
         # 3. Taxable Income & Tax Calc
@@ -254,7 +257,7 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
         current_breakdown = new_br if chosen == "New Regime" else old_br
         
         pdf.cell(140, 8, "Net Taxable Income", 1)
-        pdf.cell(40, 8, f"{current_regime_taxable:,.0f}", 1, ln=True)
+        pdf.cell(40, 8, f"Rs.{current_regime_taxable:,.0f}", 1, ln=True)
         
         pdf.ln(2)
         pdf.set_font("helvetica", 'B', 10)
@@ -264,11 +267,11 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
         
         pdf.set_font("helvetica", 'B', 10)
         pdf.cell(140, 8, "Base Tax on Slabs", 1)
-        pdf.cell(40, 8, f"{new_base if chosen=='New Regime' else old_base:,.0f}", 1, ln=True)
+        pdf.cell(40, 8, f"Rs.{new_base if chosen=='New Regime' else old_base:,.0f}", 1, ln=True)
         pdf.cell(140, 8, "Tax on Special Income (30%)", 1)
-        pdf.cell(40, 8, f"{special_tax:,.0f}", 1, ln=True)
+        pdf.cell(40, 8, f"Rs.{special_tax:,.0f}", 1, ln=True)
         pdf.cell(140, 8, f"Total Tax incl. Cess (4%)", 1)
-        pdf.cell(40, 8, f"{final_tax:,.0f}", 1, ln=True)
+        pdf.cell(40, 8, f"Rs.{final_tax:,.0f}", 1, ln=True)
         pdf.ln(5)
 
         # 4. Final Payment
@@ -276,14 +279,14 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
         pdf.cell(0, 10, " IV. FINAL NET LIABILITY", ln=True)
         pdf.set_font("helvetica", '', 10)
         pdf.cell(140, 8, "Less: Taxes Paid (TDS/Adv/Self)", 1)
-        pdf.cell(40, 8, f"-{total_paid:,.0f}", 1, ln=True)
+        pdf.cell(40, 8, f"-Rs.{total_paid:,.0f}", 1, ln=True)
         pdf.cell(140, 8, "Add: Sec 234 Interests", 1)
-        pdf.cell(40, 8, f"{int_234:,.0f}", 1, ln=True)
+        pdf.cell(40, 8, f"Rs.{int_234:,.0f}", 1, ln=True)
         
         pdf.set_font("helvetica", 'B', 11)
-        result_text = f"Net Payable: {final_payable:,.0f}" if final_payable > 0 else f"Net Refund: {final_refund:,.0f}"
+        result_text = f"Net Payable: " if final_payable > 0 else f"Net Refund: "
         pdf.cell(140, 10, result_text, 1)
-        pdf.cell(40, 10, f"₹{final_payable if final_payable > 0 else -final_refund:,.0f}", 1, ln=True)
+        pdf.cell(40, 10, f"Rs.{final_payable if final_payable > 0 else -final_refund:,.0f}", 1, ln=True)
 
         return bytes(pdf.output())
 
