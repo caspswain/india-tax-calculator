@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from fpdf import FPDF
-import base64
+from fpdf import FPDF # This now uses fpdf2
 
 # =============================================================================
 # CONFIGURATION & DATABASE
@@ -29,16 +28,14 @@ def calc_hra(actual, basic, rent, city):
     return exemp, logic
 
 def calc_gratuity(received, years, last_sal):
-    # Statutory Gratuity: 15/26 * last salary * years (capped at 20L)
     limit = (15/26) * last_sal * years
     exemp = min(received, limit, 2000000)
-    logic = f"Min of: Received({received:,.0f}), Formula({limit:,.0f}), Statutory Cap(20L)"
+    logic = f"Min of: Received({received:,.0f}), Formula({limit:,.0f}), Cap(20L)"
     return exemp, logic
 
 def calc_pension(commuted_amt, full_pension, percent):
-    # Simplified: Exemption is based on the percentage of commute
-    exemp = commuted_amt * (percent/100) # Simplified logic for demo
-    logic = f"Commuted amount {percent}% of total pension"
+    exemp = commuted_amt * (percent/100)
+    logic = f"Commuted {percent}% of total pension"
     return exemp, logic
 
 def calculate_slab_tax(taxable_income, year, regime):
@@ -64,7 +61,6 @@ st.markdown("""<style>.main { background-color: #f5f7f9; } .stButton>button { wi
 st.title("🏛️ Professional Tax Audit & Computation")
 st.markdown("<div style='text-align: center; color: #666; font-style: italic;'>Developed by <b>S P C A & Co, Chartered Accountants, Bhubaneswar</b><br><a href='http://www.caspca.net' target='_blank' style='color: #007bff;'>www.caspca.net</a></div>", unsafe_allow_html=True)
 
-# --- USER PROFILE ---
 with st.sidebar:
     st.header("👤 Client Profile")
     u_name = st.text_input("Client Full Name", value="John Doe")
@@ -76,7 +72,6 @@ with st.expander("📁 DETAILED INCOME & EXEMPTION INPUTS", expanded=True):
 
     with tab1:
         st.subheader("Salary & Exemption Calculators")
-        # HRA Section
         with st.container(border=True):
             st.markdown("**🏠 HRA Exemption Calculator**")
             c1, c2, c3, c4 = st.columns(4)
@@ -84,30 +79,23 @@ with st.expander("📁 DETAILED INCOME & EXEMPTION INPUTS", expanded=True):
             actual_hra = c2.number_input("HRA Received (₹)", min_value=0, value=0)
             rent_paid = c3.number_input("Rent Paid (₹)", min_value=0, value=0)
             city = c4.selectbox("City", ["Non-Metro", "Metro"])
-        
-        # Gratuity Section
         with st.container(border=True):
             st.markdown("**🎁 Gratuity Exemption Calculator**")
             c1, c2, c3 = st.columns(3)
             gratuity_rec = c1.number_input("Gratuity Received (₹)", min_value=0, value=0)
             g_years = c2.number_input("Years of Service", min_value=0, value=0)
             g_last_sal = c3.number_input("Last Drawn Salary (₹)", min_value=0, value=0)
-
-        # Pension Section
         with st.container(border=True):
             st.markdown("**👴 Commuted Pension Calculator**")
             c1, c2, c3 = st.columns(3)
             pension_rec = c1.number_input("Pension Amount Received (₹)", min_value=0, value=0)
             p_total = c2.number_input("Total Pension Amount (₹)", min_value=0, value=0)
             p_percent = c3.number_input("Commutation %", min_value=0, max_value=100, value=0)
-        
         st.markdown("---")
-        st.markdown("**Other Salary Components**")
         col_a, col_b = st.columns(2)
         bonus = col_a.number_input("Annual Bonus (₹)", min_value=0, value=0)
         other_allow = col_b.number_input("Other Allowances (₹)", min_value=0, value=0)
 
-    # (Other tabs remain similar to previous versions for brevity)
     with tab2:
         st.subheader("House Property")
         rent_rec = st.number_input("Annual Rent Received (₹)", min_value=0, value=0)
@@ -155,7 +143,6 @@ with st.expander("📁 DETAILED INCOME & EXEMPTION INPUTS", expanded=True):
 # ENGINE
 # ==========================================
 if st.button("🚀 GENERATE FINAL COMPUTATION"):
-    # Exemption Logic
     hra_ex, hra_log = calc_hra(actual_hra, basic, rent_paid, city)
     gra_ex, gra_log = calc_gratuity(gratuity_rec, g_years, g_last_sal)
     pen_ex, pen_log = calc_pension(pension_rec, p_total, p_percent)
@@ -167,7 +154,6 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
     total_slab_income = salary_taxable + max(0, (rent_rec-m_tax)-loan_int) + max(0, biz_rev-biz_exp) + stcg + ltcg + int_inc + misc_inc
     gti = total_slab_income + special_income
     
-    # Tax Calc
     old_ded = min(s80c, 150000) + s80d + min(s80ccd, 50000) + s80g
     new_tx_slab = max(0, total_slab_income - TAX_DATABASE[selected_year]["NEW_REGIME"]["std_deduction"])
     new_base, new_br = calculate_slab_tax(new_tx_slab, selected_year, "NEW_REGIME")
@@ -185,7 +171,6 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
     total_paid = tds_paid + advance_tax + self_assessment
     shortfall = max(0, final_tax - total_paid)
     
-    # Interest 234
     due_date = date(filing_date.year, 7, 31)
     int_234 = 0
     if filing_date > due_date:
@@ -198,44 +183,46 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
     # --- OUTPUTS ---
     st.header(f"📊 Computation for {u_name} (PAN: {u_pan})")
     
-    # Exemption Breakdown
     with st.expander("🔍 View Exemption Calculation Logic", expanded=True):
         st.write(f"**HRA:** ₹{hra_ex:,.0f} | {hra_log}")
         st.write(f"**Gratuity:** ₹{gra_ex:,.0f} | {gra_log}")
         st.write(f"**Pension:** ₹{pen_ex:,.0f} | {pen_log}")
 
-    # Main Summary Table
     summary_data = {
-        "Particulars": ["Gross Total Income", "Less: Exemptions (HRA/Gra/Pen)", "Net Slab Income", "Special Rate Income (30%)", "Less: Standard Deduction/80C", "Total Tax Liability (incl. Cess)", "Less: Taxes Paid", "Add: Sec 234 Interest", "Net Amount Payable/(Refund)"],
+        "Particulars": ["Gross Total Income", "Less: Exemptions (HRA/Gra/Pen)", "Net Slab Income", "Special Rate Income (30%)", "Less: Std Ded/80C", "Total Tax Liability (incl. Cess)", "Less: Taxes Paid", "Add: Sec 234 Interest", "Net Amount Payable/(Refund)"],
         "Amount (₹)": [gti, (hra_ex+gra_ex+pen_ex), total_slab_income, special_income, (total_slab_income - (new_tx_slab if chosen=="New Regime" else old_tx_slab)), final_tax, total_paid, int_234, (final_payable if final_payable > 0 else -final_refund)]
     }
     st.table(pd.DataFrame(summary_data))
 
-    # --- PDF GENERATION ---
-    def generate_pdf():
+    # --- PDF GENERATION FIX ---
+    def create_pdf():
         pdf = FPDF()
         pdf.add_page()
-        pdf.set_font("Arial", 'B', 16)
-        pdf.cell(200, 10, "S P C A & Co, Chartered Accountants", ln=True, align='C')
-        pdf.set_font("Arial", '', 12)
-        pdf.cell(200, 10, "Tax Computation Statement - FY " + selected_year, ln=True, align='C')
+        pdf.set_font("helvetica", 'B', 16)
+        pdf.cell(0, 10, "S P C A & Co, Chartered Accountants", ln=True, align='C')
+        pdf.set_font("helvetica", '', 12)
+        pdf.cell(0, 10, f"Tax Computation Statement - {selected_year}", ln=True, align='C')
         pdf.ln(10)
-        pdf.cell(200, 10, f"Client Name: {u_name}", ln=True)
-        pdf.cell(200, 10, f"PAN: {u_pan}", ln=True)
+        pdf.cell(0, 10, f"Client Name: {u_name}", ln=True)
+        pdf.cell(0, 10, f"PAN: {u_pan}", ln=True)
         pdf.ln(5)
-        pdf.cell(200, 10, "Computation Summary:", ln=True)
-        pdf.set_font("Arial", 'B', 10)
-        pdf.cell(100, 10, "Particulars", 1)
-        pdf.cell(40, 10, "Amount (Rs)", 1, ln=True)
-        pdf.set_font("Arial", '', 10)
+        pdf.set_font("helvetica", 'B', 12)
+        pdf.cell(0, 10, "Computation Summary:", ln=True)
+        pdf.set_font("helvetica", 'B', 10)
+        pdf.cell(130, 10, "Particulars", 1)
+        pdf.cell(40, 10, "Amount (INR)", 1, ln=True)
+        pdf.set_font("helvetica", '', 10)
         for part, amt in zip(summary_data["Particulars"], summary_data["Amount (₹)"]):
-            pdf.cell(100, 10, part, 1)
+            pdf.cell(130, 10, part, 1)
             pdf.cell(40, 10, f"{amt:,.0f}", 1, ln=True)
-        
-        pdf_output = pdf.output(dest='S').encode('latin-1')
-        return base64.b64encode(pdf_output).decode('utf-8')
+        return pdf.output() # Returns bytes directly in fpdf2
 
-    pdf_data = generate_pdf()
-    st.download_button(label="📄 Download Professional PDF Computation", data=pdf_data, file_name=f"{u_pan}_tax_comp.pdf", mime="application/pdf")
+    pdf_bytes = create_pdf()
+    st.download_button(
+        label="📄 Download Professional PDF Computation", 
+        data=pdf_bytes, 
+        file_name=f"{u_pan}_tax_comp.pdf", 
+        mime="application/pdf"
+    )
 
 st.markdown(f"<div class='firm-credit'>Created by <b>S P C A & Co, Chartered Accountants, Bhubaneswar</b><br>Official Website: <a href='http://www.caspca.net' target='_blank' class='firm-link'>www.caspca.net</a></div>", unsafe_allow_html=True)
