@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import date
-from fpdf import FPDF # This now uses fpdf2
+from fpdf import FPDF # This uses fpdf2
 
 # =============================================================================
 # CONFIGURATION & DATABASE
@@ -55,10 +55,11 @@ def calculate_slab_tax(taxable_income, year, regime):
 # ==========================================
 # UI & BRANDING
 # ==========================================
-st.set_page_config(page_title="S P C A & Co | Tax Audit", layout="wide")
+st.set_page_config(page_title="S P C A & Co | Income Tax Calculator", layout="wide")
 st.markdown("""<style>.main { background-color: #f5f7f9; } .stButton>button { width: 100%; border-radius: 5px; height: 3em; background-color: #1e3a8a; color: white; font-weight: bold; }</style>""", unsafe_allow_html=True)
 
-st.title("🏛️ Professional Tax Audit & Computation")
+# Updated Header as requested
+st.title("🏛️ Income Tax Calculator")
 st.markdown("<div style='text-align: center; color: #666; font-style: italic;'>Developed by <b>S P C A & Co, Chartered Accountants, Bhubaneswar</b><br><a href='http://www.caspca.net' target='_blank' style='color: #007bff;'>www.caspca.net</a></div>", unsafe_allow_html=True)
 
 with st.sidebar:
@@ -194,14 +195,14 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
     }
     st.table(pd.DataFrame(summary_data))
 
-    # --- PDF GENERATION FIX ---
+    # --- FIXED PDF GENERATION ---
     def create_pdf():
         pdf = FPDF()
         pdf.add_page()
         pdf.set_font("helvetica", 'B', 16)
         pdf.cell(0, 10, "S P C A & Co, Chartered Accountants", ln=True, align='C')
         pdf.set_font("helvetica", '', 12)
-        pdf.cell(0, 10, f"Tax Computation Statement - {selected_year}", ln=True, align='C')
+        pdf.cell(0, 10, f"Income Tax Computation - {selected_year}", ln=True, align='C')
         pdf.ln(10)
         pdf.cell(0, 10, f"Client Name: {u_name}", ln=True)
         pdf.cell(0, 10, f"PAN: {u_pan}", ln=True)
@@ -215,14 +216,19 @@ if st.button("🚀 GENERATE FINAL COMPUTATION"):
         for part, amt in zip(summary_data["Particulars"], summary_data["Amount (₹)"]):
             pdf.cell(130, 10, part, 1)
             pdf.cell(40, 10, f"{amt:,.0f}", 1, ln=True)
-        return pdf.output() # Returns bytes directly in fpdf2
+        
+        # CRITICAL FIX: Explicitly cast the output to bytes
+        return bytes(pdf.output()) 
 
-    pdf_bytes = create_pdf()
-    st.download_button(
-        label="📄 Download Professional PDF Computation", 
-        data=pdf_bytes, 
-        file_name=f"{u_pan}_tax_comp.pdf", 
-        mime="application/pdf"
-    )
+    try:
+        pdf_bytes = create_pdf()
+        st.download_button(
+            label="📄 Download Professional PDF Computation", 
+            data=pdf_bytes, 
+            file_name=f"{u_pan}_tax_comp.pdf", 
+            mime="application/pdf"
+        )
+    except Exception as e:
+        st.error(f"PDF generation failed: {e}")
 
 st.markdown(f"<div class='firm-credit'>Created by <b>S P C A & Co, Chartered Accountants, Bhubaneswar</b><br>Official Website: <a href='http://www.caspca.net' target='_blank' class='firm-link'>www.caspca.net</a></div>", unsafe_allow_html=True)
